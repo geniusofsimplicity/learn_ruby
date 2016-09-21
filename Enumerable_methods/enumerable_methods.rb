@@ -131,22 +131,41 @@ module Enumerable
 		end
 	end
 
-	def my_map
+	def my_map *input_proc
 		result = self.class.new
 		copy = self.dup
-		case self.class.to_s
-		when Hash.to_s
-			while copy.first != nil
-				current = copy.shift
-				result[current[0]] = yield(current[0], current[1])				
+		input_proc = input_proc.first if input_proc.length == 0 
+		if input_proc.nil?
+			case self.class.to_s
+			when Hash.to_s
+				while copy.first != nil
+					current = copy.shift
+					result[current[0]] = yield(current[0], current[1])				
+				end
+				result
+			when Array.to_s
+				while copy.first != nil
+					result << yield(copy.shift)
+				end
+				result			
 			end
-			result
-		when Array.to_s
-			while copy.first != nil
-				result << yield(copy.shift)
-			end
-			result			
-		end		
+		else
+			input_proc = input_proc.first
+			case self.class.to_s
+			when Hash.to_s
+				while copy.first != nil
+					current = copy.shift
+					result[current[0]] = input_proc.call(current[0], current[1])				
+				end
+				result
+			when Array.to_s
+				while copy.first != nil
+					result << input_proc.call(copy.shift)
+				end
+				result			
+			end	
+		end
+			
 	end
 
 	def my_inject
