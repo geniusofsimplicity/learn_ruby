@@ -24,20 +24,16 @@ module Enumerable
 
 	def my_select	
 		case self.class.to_s
-		when Hash.to_s
-			temp = self.dup
+		when Hash.to_s			
 			result = Hash.new(self.default)
-			for i in 0..(self.size-1)
-				current = temp.shift
-				result[current[0]] = current[1] if yield(current[0], current[1])
+			self.my_each do |k, v|
+				result[k] = v if yield(k, v)
 			end
 			result
-		when Array.to_s
-			result = []			
-			for i in 0..(self.size-1)
-				result << self[i] if yield(self[i])
-			end			
-			result	
+		when Array.to_s				
+			result = []
+			self.my_each {|v| result << v if yield(v)}			
+			result
 		end
 	end
 
