@@ -8,12 +8,26 @@ class Mastermind
 		colours = gets.chomp
 		colours = colours.split
 		board = Board.new(colours)
+
 		code = nil
 		puts "Do you want to set the code? (y/n)"		
+
+		# TODO: Validate the no answer
 		if gets.chomp == "y"
 			puts "You can enter the code below."
 			code = Board.get_colours
+		end	
+
+		computer = nil
+		puts "Do you want the compute to guess the code? (y/n)"		
+		# TODO: Validate the no answer
+		if gets.chomp == "y"
+			computer = Compluter.new(board)
+			code_breaker = computer
+		else
+			code_breaker = CodeBreaker.new(name)
 		end
+
 		code_master = nil
 		if code
 			code_master = CodeMaster.new({code: code})
@@ -21,14 +35,14 @@ class Mastermind
 			code_master = CodeMaster.new({colours: colours})
 		end
 		code_master.print_code
-		22.times {puts}
-		code_breaker = CodeBreaker.new(name)
-		game = Mastermind.new(code_breaker, code_master, board)
+		22.times {puts}		
+
+		game = Mastermind.new(code_breaker, code_master, board, computer)
 	end
 
 	def start
 		process_turns
-	end
+	end	
 
 	class CodeBreaker
 		def initialize(name)
@@ -38,6 +52,24 @@ class Mastermind
 		def move			
 			colours = Board.get_colours
 		end
+	end
+
+	class Compluter < CodeBreaker
+		def initialize(board)
+			@board = board			
+		end
+
+		def move			
+			bulls_n = @board.last_bulls
+			cows_n = @board.last_cows
+			last_row = @board.last_row
+			pick = []
+			pick = last_row.sample(bulls_n + cows_n) if last_row
+			need_n = 4 - pick.size
+			pick += Board.colours.sample(need_n) if need_n > 0
+			pick
+		end
+
 	end
 
 	class CodeMaster
@@ -86,7 +118,7 @@ class Mastermind
 	end
 
 	class Board
-		attr_reader :colours
+		attr_reader :colours, :board
 		Row = Struct.new(:move, :result)
 
 		def initialize(colours)	
@@ -97,6 +129,18 @@ class Mastermind
 
 		def update(colours, feedback)
 			@board << [colours, feedback]
+		end
+
+		def last_bulls
+			@board.last ? @board.last[1][:bulls] : 0
+		end
+
+		def last_cows
+			@board.last ? board.last[1][:cows] : 0
+		end
+
+		def last_row
+			@board.last[0] if @board.last
 		end
 
 		def print
@@ -110,6 +154,10 @@ class Mastermind
 						 					 "#{colours[3].ljust(@l_just + 2)} "\
 						 					 "|| bulls: #{feedback[:bulls]}, cows: #{feedback[:cows]}"
 			end		
+		end
+
+		def self.colours
+			@@colours			
 		end
 
 		def self.get_colours
@@ -136,10 +184,11 @@ class Mastermind
 
 	private
 
-	def initialize(code_breaker, code_master, board)
+	def initialize(code_breaker, code_master, board, computer)
 		@code_breaker = code_breaker
 		@code_master = code_master
-		@board = board		
+		@board = board
+		@computer = computer
 	end
 
 	def process_turns
@@ -154,14 +203,14 @@ class Mastermind
 				won = true				
 				break			
 			end			
-		end
-		@board.print
+		end		
 		if won
 			puts "Congratulations! You have won!"
 		else
 			puts "You have used all your attempts."\
 				   " I wish you good luck in next games."			
-		end		
+		end
+		@board.print		
 		puts "The correct code is:"
 		@code_master.print_code
 	end
