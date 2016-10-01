@@ -7,8 +7,23 @@ class Mastermind
 		puts "Enter the colours you want to play with."
 		colours = gets.chomp
 		colours = colours.split
-		code_breaker = CodeBreaker.new(name, colours)
-		game = Mastermind.new(code_breaker, colours)
+		board = Board.new(colours)
+		code = nil
+		puts "Do you want to set the code? (y/n)"		
+		if gets.chomp == "y"
+			puts "You can enter the code below."
+			code = Board.get_colours
+		end
+		code_master = nil
+		if code
+			code_master = CodeMaster.new({code: code})
+		else
+			code_master = CodeMaster.new({colours: colours})
+		end
+		code_master.print_code
+		22.times {puts}
+		code_breaker = CodeBreaker.new(name)
+		game = Mastermind.new(code_breaker, code_master, board)
 	end
 
 	def start
@@ -16,36 +31,22 @@ class Mastermind
 	end
 
 	class CodeBreaker
-		def initialize(name, colours)
-			@name = name
-			@colours = colours
+		def initialize(name)
+			@name = name			
 		end
 
-		def move
-			colours = false
-			until colours
-				puts "Please, enter correct colours."
-				colours = get_colours	
-			end
-			colours
-		end
-
-		private
-
-		def get_colours
-			input = gets.chomp
-			colours = input.split
-			return false if colours.size != 4
-			colours.each do |c|
-				return false unless @colours.include?(c)
-			end
-			colours
+		def move			
+			colours = Board.get_colours
 		end
 	end
 
 	class CodeMaster
-		def initialize(colours)
-			gen_code(colours)
+		def initialize(mode)
+			case
+			when mode[:colours] then gen_code(mode[:colours])
+			when mode[:code] 		then @code = mode[:code]
+			else # TODO
+			end			
 		end
 
 		def get_feedback(colours)
@@ -71,7 +72,7 @@ class Mastermind
 		end
 
 		def print_code
-			puts @code.inspect
+			puts @code.join(" ")
 		end
 
 		private
@@ -80,9 +81,7 @@ class Mastermind
 			@code = []
 			4.times do
 				@code << colours.sample
-			end
-			print_code
-			22.times {puts}
+			end			
 		end
 	end
 
@@ -93,7 +92,7 @@ class Mastermind
 		def initialize(colours)	
 			@board = []
 			@l_just = colours.max.size
-			@colours = colours
+			@@colours = colours
 		end
 
 		def update(colours, feedback)
@@ -112,14 +111,35 @@ class Mastermind
 						 					 "|| bulls: #{feedback[:bulls]}, cows: #{feedback[:cows]}"
 			end		
 		end
+
+		def self.get_colours
+			colours = nil
+			until colours
+				puts "Please, enter correct colours (#{@@colours.join(" / ")})."
+				input = gets.chomp
+				colours = input.split
+				unless colours.size == 4
+					colours = nil
+					next
+				end
+				colours.each do |c|
+					unless @@colours.include?(c)
+						colours = nil
+						next
+					end
+				end
+			end			
+			colours
+		end
+
 	end
 
 	private
 
-	def initialize(code_breaker, colours)
+	def initialize(code_breaker, code_master, board)
 		@code_breaker = code_breaker
-		@code_master = CodeMaster.new(colours)
-		@board = Board.new(colours)		
+		@code_master = code_master
+		@board = board		
 	end
 
 	def process_turns
@@ -135,13 +155,15 @@ class Mastermind
 				break			
 			end			
 		end
+		@board.print
 		if won
 			puts "Congratulations! You have won!"
 		else
 			puts "You have used all your attempts."\
-				   " I wish you good luck in next game."
-			@code_master.print_code
-		end
+				   " I wish you good luck in next games."			
+		end		
+		puts "The correct code is:"
+		@code_master.print_code
 	end
 end
 
