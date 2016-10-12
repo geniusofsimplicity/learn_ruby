@@ -11,7 +11,7 @@ case type
 when "GET"
 	initial_line = "GET #{path} HTTP/1.0"	
 	headers_to = ["From: Pasha", "User-agent: Pasha/0.1Gold"]
-	body_to = "new body is here"	
+	body_to = "new body is here"
 when "POST"
 	puts "Enter a name for the viking you want to register for raid."
 	name = gets.chomp

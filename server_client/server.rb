@@ -7,8 +7,7 @@ class PServer
 	end
 
 	def start
-		puts "Server has started."
-		params = {}
+		puts "Server has started."		
 		loop do 
 			client = @server.accept
 			type_in, path, headers, body_in = parse(client.recvmsg.first)
@@ -16,20 +15,10 @@ class PServer
 			when "GET" 
 				init_line_out, headers, body_out = get_resource(path)
 			when "POST"
-				puts "json parsed: #{JSON.parse(body_in)}"
-				params.merge!(JSON.parse(body_in))
-				puts "params merged: #{params}"
-				body_out = ""
-				File.open("./thanks.html") do |file|
-					body_out = file.readlines.join
-				end
-				body_out.gsub!("<%= yield %>", "<li>Name: #{params['viking']['name']}</li><li>Email: #{params['viking']['email']}</li>")
-				init_line_out = "HTTP/1.0 200 OK"
-				headers = []
-				headers << "Content-Type: text/html"
-				headers << "Content-Length: #{body_out.bytesize}"
-			else
+				init_line_out, headers, body_out = handle_post(body_in)				
+			else # TODO
 			end
+
 			message = assemble_msg(init_line_out, headers, body_out)
 			client.puts(message)		
 			client.close
@@ -37,6 +26,21 @@ class PServer
 	end
 
 	private
+
+	def handle_post(body)
+		params = {}
+		params.merge!(JSON.parse(body))
+		body_out = ""
+		File.open("./thanks.html") do |file|
+			body_out = file.readlines.join
+		end
+		body_out.gsub!("<%= yield %>", "<li>Name: #{params['viking']['name']}</li><li>Email: #{params['viking']['email']}</li>")
+		init_line = "HTTP/1.0 200 OK"
+		headers = []
+		headers << "Content-Type: text/html"
+		headers << "Content-Length: #{body_out.bytesize}"
+		[init_line, headers, body_out]
+	end
 
 	def assemble_msg(init_line, headers, body)
 		"#{init_line}\r\n#{headers.join("\n")}\r\n\r\n#{body}"
