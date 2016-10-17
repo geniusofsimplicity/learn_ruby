@@ -1,13 +1,14 @@
 class Chess
-	def setup
-		@board = Board.new
+	def setup(from, to)
+		path = knight_moves(from, to).reverse
+		@board = Board.new(path.clone)
 		@board.draw
-		p knight_moves([3, 3], [4, 3]).reverse
+		puts "You made it in #{path.size - 1} moves!  Here's your path:"
+		path.each{|m| p m}
 	end
 
 	def knight_moves(from, to)			
-		@knight = Knight.new(from)
-		@knight.build_moves
+		@knight = Knight.new(from)		
 		path = @knight.find_path(to)
 		path_display = []
 		path.each do |n|
@@ -17,19 +18,23 @@ class Chess
 	end
 
 	class Board
-		def initialize(pos = nil)
-			@board = Array.new(8, Array.new(8, "o"))
-
-			@board[pos[0]][pos[1]] = "x" if pos			
+		def initialize(path)			
+			@board = Hash.new("o")
+			@board[path.shift] = "s"
+			@board[path.pop] = "f"
+			path.each_index do |i|
+				move = path[i]				
+				@board[move] = i + 1
+			end
 		end
 
-		def draw
-			8.times do 
-				8.times do
-					print(" o")
-				end
-				puts				
-			end			
+		def draw			
+			8.times do |i|
+				8.times do |j|
+					print "#{@board[[i, j]]} "					
+				end	
+				puts			
+			end	
 		end
 	end
 
@@ -48,7 +53,11 @@ class Chess
 			def add_child(new_child)
 				@children << new_child
 				new_child.parent = self
-			end			
+			end
+			def add_children(children)
+				@children = children
+				children.each{|ch| ch.parent = self}
+			end
 		end
 
 		def initialize(position)
@@ -56,67 +65,45 @@ class Chess
 			@moves = []
 		end
 
-		def build_moves(current_pos = @position, passed = [@position], level = 0)			
-			#puts "build_moves started!!!***" if current_pos == @position
-			#puts "level #{level}"
-			moves = possible_moves(current_pos)
-			#puts "current_pos: #{current_pos.position}"
-			#puts "moves:"
-			#moves.each{|m| print "#{m.position} "}			
-			#puts if moves.size > 0
-			#puts "passed:"
-			#passed.each{|p| print "#{p.position} "}
-			#puts if passed.size > 0
-			moves = exclude(moves, passed)
-			#puts "moves after exclusion:"
-			#moves.each{|m| print "#{m.position} "}
-			#puts if moves.size > 0
-			return if moves.size == 0
-			moves.each do |move|
-				passed1 = passed
-				passed1 << move
-				current_pos.add_child(move)
-				build_moves(move, passed1.clone, level + 1)
-			end
-		end		
-
 		def find_path(target_pos)
-			target_pos = breadth_first_search(target_pos)
-			current_pos = target_pos # nodes now
+			quickest_target = build_moves(target_pos)		
+			current_pos = quickest_target # nodes now
 			path = []
 			until current_pos.position == @position.position
 				path << current_pos
 				current_pos = current_pos.parent
 			end
-			path
+			path << current_pos
 		end
 
 		private	
 
-		def breadth_first_search(target_pos)
+		def build_moves(target_pos)
 			current_pos = @position
 			next_to_visit = []
-			#puts "breadth_first_search:"
-			while current_pos
-				#p "current: #{current_pos.position}"
-				#current_pos.children.each{|c| print "#{c.position}  "}
-				#puts
-				return current_pos if current_pos.position == target_pos
-				next_to_visit += current_pos.children
+			passed = {}
+			until current_pos.position == target_pos
+				moves = possible_moves(current_pos)				
+				moves = exclude(moves, passed[current_pos]) # filter new moves to eliminate cycling
+				passed[current_pos] ||= []
+				passed[current_pos] << current_pos
+				current_pos.add_children(moves)
+				next_to_visit += moves
 				current_pos = next_to_visit.shift
-			end			
+			end
+			current_pos
 		end
 
 		def exclude(moves, passed)
 			passed_values = []
-			passed.each do |p|
-				passed_values << p.position				
-			end
-			moves_to_exclude = []
-			moves.each do |m|
-				moves_to_exclude << m if passed_values.include?(m.position)
-			end
-			moves -= moves_to_exclude
+			if passed
+				passed.each do |p|
+					passed_values << p.position				
+				end			
+				moves = moves.select do |m|
+					!passed_values.include?(m.position)
+				end
+			end			
 			moves
 		end
 
@@ -146,4 +133,4 @@ class Chess
 end
 
 game = Chess.new
-game.setup
+game.setup([3, 3], [4, 3])
