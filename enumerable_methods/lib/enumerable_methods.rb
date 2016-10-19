@@ -3,12 +3,12 @@ module Enumerable
 		case self.class.to_s
 		when Hash.to_s			
 			copy = self.dup
-			for i in 0..(self.size-1)
+			for i in 0..(self.size - 1)
 				current = copy.shift
 				yield(current[0], current[1])
 			end
 		when Array.to_s
-			for i in 0..(self.size-1)
+			for i in 0..(self.size - 1)
 				yield(self[i])
 			end
 		end		
